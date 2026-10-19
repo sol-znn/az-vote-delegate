@@ -30,7 +30,7 @@ If setup does not open automatically, run `sudo az-vote-delegate` for a root ins
 1. **Connect to your node.** Confirm the node URL and expected chain ID. The defaults are `ws://127.0.0.1:35998` and mainnet chain ID `1`.
 2. **Install the service.** Choose **Yes** when asked to install and start a background service. It keeps working after you close the terminal menu.
 3. **Load your producer key.** Choose **Use existing znnd configuration**, or select a producer key file and enter its derivation index and password. No new key is generated and your znnd configuration is unchanged.
-4. **Choose a pillar to copy.** The menu shows the top 30 active voters in random order, with participation figures. [How participation is calculated](./delegation.md).
+4. **Choose a pillar to copy.** The menu shows the top 30 active voters in random order, with participation figures. [How participation is calculated](./delegation.md). To vote from another wallet instead, choose **Copy an address (proxy votes)**. [Copy an address](./delegation.md#copy-an-address).
 5. **Set a copy vote delay.** Enter the number of minutes to wait before copying each vote. `0` means no delay; manual votes bypass this setting. [Delay behavior](./delegation.md#delay-copied-votes).
 6. **Choose your voting mode.** **Dry run** previews decisions without submitting votes; **Live** submits votes on eligible AZ proposals and phase-payout requests. Dry run is selected by default.
 7. **Save and start.** Review the mode and confirm. The service starts in the mode you selected.

@@ -548,7 +548,7 @@ func (m *Manager) read(ctx context.Context, action string) (Response, error) {
 		if err != nil {
 			return Response{}, err
 		}
-		follow, err := n.PillarVotes(ctx, d.Follow, ids)
+		follow, err := n.SourceVotes(ctx, d.Follow, ids)
 		if err != nil {
 			return Response{}, err
 		}

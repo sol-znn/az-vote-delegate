@@ -95,3 +95,13 @@ func TestPasswordSources(t *testing.T) {
 		t.Fatal("symlink accepted")
 	}
 }
+func TestFollowAddress(t *testing.T) {
+	if _, ok := FollowAddress("z1qrw2vecdddmft89xh6yqencmjergsshhfmks0l"); !ok {
+		t.Fatal("address not recognised")
+	}
+	for _, name := range []string{"TrustedPillar", "z1qrw2vecdddmft89xh6yqencmjergsshhfmks0x", ""} {
+		if _, ok := FollowAddress(name); ok {
+			t.Fatalf("%q taken for an address", name)
+		}
+	}
+}

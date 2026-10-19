@@ -21,6 +21,17 @@ Yes, no, and abstain all count as participation. The denominator includes all pr
 
 Participation tells you how often a pillar has voted in the available history. It does not tell you whether you agree with its decisions. With no recorded requests, the menu reports that instead of inventing a percentage.
 
+## Copy an address
+
+You can copy any address instead of a pillar. In the picker, choose **Copy an address (proxy votes)** and enter a z1 address. In `config.json`, put the address in `follow`.
+
+Use this to vote from a phone or a wallet you do not trust with your pillar keys. Send the vote from that address to the Accelerator contract, as any wallet can. The contract does not count a vote from an address that runs no pillar, but the block stays on that address's chain. On its next poll the service reads it and casts the same vote with your producer key.
+
+- The address's newest confirmed vote on each request is the one copied. Votes sent by producer address and by pillar name both count; a claimed pillar name is ignored.
+- Everything else on this page applies: the copy delay, manual votes and overrides.
+- Whoever holds the address's key decides your copied votes, and nothing else. Keep an address for voting only. If its key is lost or exposed, choose another address or a pillar to copy.
+- You cannot follow your own producer address; those blocks are the service's own votes.
+
 ## What gets copied
 
 The service checks current votes on each poll. It follows open initial project proposals within their voting window and the current voting phase of active projects. If the delegate has not voted, there is no vote to copy yet.

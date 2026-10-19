@@ -88,7 +88,7 @@ func (e *Engine) Reconcile(ctx context.Context, ds []config.Delegation) ([]Row, 
 		if len(ids) == 0 {
 			continue
 		}
-		bVotes, err := e.Backend.PillarVotes(ctx, d.Follow, ids)
+		bVotes, err := e.Backend.SourceVotes(ctx, d.Follow, ids)
 		if err != nil {
 			failures = append(failures, fmt.Errorf("%s delegate votes: %w", d.PillarName, err))
 			continue
@@ -269,7 +269,7 @@ func (e *Engine) guard(ctx context.Context, d config.Delegation, id string, entr
 	if !active {
 		return ErrChanged
 	}
-	bv, err := e.Backend.PillarVotes(ctx, d.Follow, []string{id})
+	bv, err := e.Backend.SourceVotes(ctx, d.Follow, []string{id})
 	if err != nil {
 		return err
 	}

@@ -276,6 +276,29 @@ service rechecks that a selected request remains unanswered before queuing a
 manual choice. Explicit override persistence and pending-transaction handling
 remain unchanged underneath this menu filter.
 
+## Copy an address amendment (2026-10-19)
+
+`follow` takes either a pillar name or a z1 address. A pillar's votes are read
+from contract state as before. An address's votes are read from its own
+account chain: for each votable id, the newest confirmed user-send block to the
+Accelerator contract whose data is `VoteByProdAddress(id, vote)` or
+`VoteByName(id, name, vote)`, with any claimed name ignored.
+
+This is a proxy vote. The contract accepts a vote block
+from any address and refuses it on receive unless the sender is a pillar's owner
+or producer, so the vote is never counted, but the send block is confirmed and
+stays on the sender's chain. Copying it lets an operator vote from a phone or a
+wallet they do not trust with the pillar's keys: the key on that device can
+direct the pillar's AZ votes and nothing else, and can be replaced by pointing
+`follow` somewhere else.
+
+The address's votes go through the same reconcile as a pillar's: copy delay,
+owner override, manual votes, the pre-publish guard. Following the pillar's own
+producer address is refused at `check`, since those blocks are the daemon's own
+copies. The address chain is read from height 1 on each poll, which is cheap for
+an address kept for voting and slow for a busy one. A pillar named exactly like
+a valid address would be read as an address; none is known.
+
 ## Configurable copy delay amendment
 
 `copyDelayMinutes` defaults to zero and accepts whole minutes from 0 through 10080.

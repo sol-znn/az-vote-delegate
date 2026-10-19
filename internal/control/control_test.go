@@ -46,6 +46,9 @@ func (f *fakeNode) PillarVotes(_ context.Context, name string, _ []string) (dele
 	}
 	return delegate.Votes{id: f.owner}, nil
 }
+func (f *fakeNode) SourceVotes(ctx context.Context, follow string, ids []string) (delegate.Votes, error) {
+	return f.PillarVotes(ctx, follow, ids)
+}
 func (f *fakeNode) Executed(context.Context, string) (bool, error) { return true, nil }
 func (f *fakeNode) Send(ctx context.Context, _ config.Delegation, _ string, v delegate.Vote, guard func() error, journal func(string) error) error {
 	if f.block {

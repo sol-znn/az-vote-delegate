@@ -67,6 +67,9 @@ type Votes map[string]*Vote
 type Backend interface {
 	ListVotables(context.Context) ([]Votable, error)
 	PillarVotes(context.Context, string, []string) (Votes, error)
+	// SourceVotes reads what a delegation copies: a pillar's votes, or the
+	// latest vote blocks sent by an address (see config.FollowAddress).
+	SourceVotes(context.Context, string, []string) (Votes, error)
 	Send(context.Context, config.Delegation, string, Vote, func() error, func(string) error) error
 	Executed(context.Context, string) (bool, error)
 }

@@ -360,6 +360,14 @@ func TestCheckRejectsWrongChainAndProducer(t *testing.T) {
 	if err := n.Check(context.Background()); err == nil {
 		t.Fatal("missing delegate accepted")
 	}
+	n.Config.Delegations[0].Follow = "z1qrw2vecdddmft89xh6yqencmjergsshhfmks0l"
+	if err := n.Check(context.Background()); err != nil {
+		t.Fatalf("address delegate refused: %v", err)
+	}
+	n.Config.Delegations[0].Follow = address.String()
+	if err := n.Check(context.Background()); err == nil {
+		t.Fatal("own producer address accepted as delegate")
+	}
 }
 func TestVoteResponseValidationAndBatching(t *testing.T) {
 	n, f := newNode(t)
@@ -441,5 +449,38 @@ func TestCanceledSendDoesNotPublish(t *testing.T) {
 	defer f.mu.Unlock()
 	if f.published != nil {
 		t.Fatal("published canceled send")
+	}
+}
+func TestAddressVotesTakeLatestConfirmedVoteBlock(t *testing.T) {
+	proxy := types.ParseAddressPanic("z1qrw2vecdddmft89xh6yqencmjergsshhfmks0l")
+	a, b, c := hash("a"), hash("b"), hash("c")
+	confirmed := &chainapi.AccountBlockConfirmationDetail{NumConfirmations: 1}
+	block := func(height uint64, data []byte, to types.Address, detail *chainapi.AccountBlockConfirmationDetail) *chainapi.AccountBlock {
+		return &chainapi.AccountBlock{AccountBlock: nom.AccountBlock{Address: proxy, Height: height, BlockType: nom.BlockTypeUserSend, ToAddress: to, Data: data}, ConfirmationDetail: detail}
+	}
+	byProd := func(id types.Hash, v uint8) []byte {
+		return definition.ABICommon.PackMethodPanic(definition.VoteByProdAddressMethodName, id, v)
+	}
+	byName := func(id types.Hash, name string, v uint8) []byte {
+		return definition.ABICommon.PackMethodPanic(definition.VoteByNameMethodName, id, name, v)
+	}
+	blocks := []*chainapi.AccountBlock{
+		block(1, byProd(a, 0), types.AcceleratorContract, confirmed),
+		block(2, byName(a, "Other", 1), types.AcceleratorContract, confirmed), // newest on a, name ignored
+		block(3, byProd(b, 2), types.AcceleratorContract, confirmed),
+		block(4, byProd(b, 0), types.AcceleratorContract, nil),               // unconfirmed
+		block(5, byProd(c, 0), types.PillarContract, confirmed),              // wrong contract
+		block(6, byProd(hash("d"), 0), types.AcceleratorContract, confirmed), // not asked for
+	}
+	votes, err := addressVotes(proxy, blocks, []string{a.String(), b.String(), c.String()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if delegate.VoteText(votes[a.String()]) != "no" || delegate.VoteText(votes[b.String()]) != "abstain" || votes[c.String()] != nil || len(votes) != 3 {
+		t.Fatal(votes)
+	}
+	blocks[0].Address = types.ZeroAddress
+	if _, err := addressVotes(proxy, blocks, []string{a.String()}); err == nil {
+		t.Fatal("block from another address accepted")
 	}
 }

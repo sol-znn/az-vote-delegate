@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/zenon-network/go-zenon/common/types"
 )
 
 type Delegation struct {
@@ -30,6 +32,13 @@ type Config struct {
 	PowTimeoutSeconds   int          `json:"powTimeoutSeconds"`
 	StatePath           string       `json:"statePath"`
 	Delegations         []Delegation `json:"delegations"`
+}
+
+// FollowAddress reports whether follow names an address rather than a pillar.
+// Any address can send a vote block, so an address's votes can be copied too.
+func FollowAddress(follow string) (types.Address, bool) {
+	address, err := types.ParseAddress(follow)
+	return address, err == nil
 }
 
 func ValidateCopyDelay(minutes int) error {

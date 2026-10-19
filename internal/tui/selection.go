@@ -7,6 +7,7 @@ import (
 	"math/rand/v2"
 	"sort"
 
+	"github.com/0x3639/az-vote-delegate/internal/config"
 	"github.com/0x3639/az-vote-delegate/internal/control"
 	"github.com/0x3639/az-vote-delegate/internal/node"
 	"github.com/charmbracelet/huh"
@@ -41,13 +42,25 @@ func chooseDelegate(ctx context.Context, all []node.Participation, self, backLab
 		return "", errors.New("no other active pillars found; if you just upgraded, restart the voting service")
 	}
 	chosen := options[0].Value
-	options = append(options, huh.NewOption(backLabel, ""))
+	options = append(options, huh.NewOption("Copy an address (proxy votes)", byAddress), huh.NewOption(backLabel, ""))
 	err := form(ctx, huh.NewSelect[string]().Title("Choose a pillar to copy").Description("Your pillar: "+Clean(self)+". Top 30 by recorded votes, shuffled; type to search.\nParticipation = votes / all retained project and phase requests, including closed requests. Not adjusted for when a pillar joined.\nApplies to projects and phase payouts; existing manual overrides stay in place.").Height(18).Filtering(true).Options(options...).Value(&chosen))
 	if err == nil && chosen == "" {
 		err = errBack
 	}
+	if err == nil && chosen == byAddress {
+		chosen = ""
+		err = form(ctx, huh.NewInput().Title("Address to copy").Description("Any z1 address. Its latest vote on each request is copied, such as one sent from a phone or a wallet you do not trust with your pillar keys. The contract does not count such votes for an address that runs no pillar.").Value(&chosen).Validate(func(s string) error {
+			if _, ok := config.FollowAddress(s); !ok {
+				return errors.New("enter a z1 address")
+			}
+			return nil
+		}))
+	}
 	return chosen, err
 }
+
+// byAddress cannot collide with a pillar name, which never contains a NUL.
+const byAddress = "\x00address"
 
 func unvotedRows(s *control.Snapshot, phases bool) []int {
 	indices := []int{}

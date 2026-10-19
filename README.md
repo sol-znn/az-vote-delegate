@@ -13,8 +13,10 @@ curl -fsSL https://raw.githubusercontent.com/0x3639/az-vote-delegate/main/instal
 Omit `sudo` if your node runs as a regular user.
 
 1. Follow the setup menu and install the background service.
-2. Choose a pillar to copy and a **copy vote delay** in minutes (`0` means no delay).
+2. Choose a pillar or an address to copy, and a **copy vote delay** in minutes (`0` means no delay).
 3. Preview in **Dry run**, or select **Live** to start voting.
+
+Copying an address lets you vote from a wallet you do not trust with your pillar keys: send the vote from that address, and the service casts the same vote with your producer key. Any address can send a vote block to the Accelerator contract; the contract does not count it, but it stays on that address's chain, where the service can read it. Whoever holds that address's key decides your copied votes, so use one you keep for voting.
 
 Reopen the menu with `sudo az-vote-delegate` (or `~/.local/bin/az-vote-delegate` for a regular-user installation). Change delegates, adjust the delay, cast manual votes, or upgrade from there. Manual votes protect that request while other votes keep copying.
 

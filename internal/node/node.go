@@ -17,6 +17,7 @@ import (
 	"github.com/0x3639/znn-sdk-go/rpc_client"
 	"github.com/0x3639/znn-sdk-go/wallet"
 	"github.com/0x3639/znn-sdk-go/zenon"
+	"github.com/zenon-network/go-zenon/chain/nom"
 	"github.com/zenon-network/go-zenon/common/types"
 	chainapi "github.com/zenon-network/go-zenon/rpc/api"
 	"github.com/zenon-network/go-zenon/vm/embedded/definition"
@@ -156,6 +157,13 @@ func (n *Node) Check(ctx context.Context) error {
 		if owner == nil || owner.ProducerAddress != *address || owner.RevokeTimestamp != 0 {
 			return fmt.Errorf("%s: key does not match an active pillar producer address", d.PillarName)
 		}
+		if source, ok := config.FollowAddress(d.Follow); ok {
+			// The producer's own blocks are the daemon's copies; following them copies nothing.
+			if source == *address {
+				return fmt.Errorf("%s cannot follow its own producer address", d.PillarName)
+			}
+			continue
+		}
 		if follow == nil || follow.RevokeTimestamp != 0 {
 			return fmt.Errorf("delegate %s is not an active pillar", d.Follow)
 		}
@@ -290,6 +298,75 @@ func (n *Node) votes(ctx context.Context, name string, hashes []types.Hash) (del
 	}
 	return result, nil
 }
+
+// SourceVotes reads the votes to copy: a pillar's from contract state, or an
+// address's from its own account chain.
+func (n *Node) SourceVotes(ctx context.Context, follow string, ids []string) (delegate.Votes, error) {
+	address, ok := config.FollowAddress(follow)
+	if !ok {
+		return n.PillarVotes(ctx, follow, ids)
+	}
+	var blocks []*chainapi.AccountBlock
+	for height := uint64(1); ; height += uint64(pageSize) {
+		list, err := call(ctx, n, func() (*chainapi.AccountBlockList, error) {
+			return n.Client.LedgerApi.GetAccountBlocksByHeight(address, height, uint64(pageSize))
+		})
+		if err != nil {
+			return nil, err
+		}
+		if list == nil {
+			return nil, errors.New("invalid account block list")
+		}
+		blocks = append(blocks, list.List...)
+		if len(list.List) < int(pageSize) {
+			break
+		}
+	}
+	return addressVotes(address, blocks, ids)
+}
+
+// addressVotes takes each id's vote from the newest confirmed vote block the
+// address sent to the Accelerator contract. The contract refuses such a vote
+// from an address that is not a pillar's owner or producer, but the send block
+// is still on the address's chain (a proxy vote), and
+// this is where it is read back. Both vote methods count and a claimed pillar
+// name is ignored, so the address's latest word on an id is the one copied.
+func addressVotes(address types.Address, blocks []*chainapi.AccountBlock, ids []string) (delegate.Votes, error) {
+	want := map[types.Hash]bool{}
+	result := delegate.Votes{}
+	for _, id := range ids {
+		h, err := types.HexToHash(id)
+		if err != nil {
+			return nil, err
+		}
+		want[h] = true
+		result[id] = nil
+	}
+	heights := map[types.Hash]uint64{}
+	for _, b := range blocks {
+		if b == nil || b.Address != address {
+			return nil, errors.New("mismatched account block response")
+		}
+		if b.BlockType != nom.BlockTypeUserSend || b.ToAddress != types.AcceleratorContract || b.ConfirmationDetail == nil || len(b.Data) < 4 {
+			continue
+		}
+		method, err := definition.ABICommon.MethodById(b.Data[:4])
+		if err != nil || (method.Name != definition.VoteByNameMethodName && method.Name != definition.VoteByProdAddressMethodName) {
+			continue
+		}
+		param := new(definition.PillarVote)
+		if definition.ABICommon.UnpackMethod(param, method.Name, b.Data) != nil || param.Vote > uint8(delegate.Abstain) || !want[param.Id] {
+			continue
+		}
+		if b.Height > heights[param.Id] {
+			heights[param.Id] = b.Height
+			vote := delegate.Vote(param.Vote)
+			result[param.Id.String()] = &vote
+		}
+	}
+	return result, nil
+}
+
 func (n *Node) Executed(ctx context.Context, hash string) (bool, error) {
 	h, err := types.HexToHash(hash)
 	if err != nil {

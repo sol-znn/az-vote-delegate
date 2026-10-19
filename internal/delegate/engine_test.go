@@ -85,6 +85,9 @@ func (f *fakeBackend) PillarVotes(_ context.Context, name string, ids []string) 
 	}
 	return v, f.errorVotes
 }
+func (f *fakeBackend) SourceVotes(ctx context.Context, follow string, ids []string) (Votes, error) {
+	return f.PillarVotes(ctx, follow, ids)
+}
 func (f *fakeBackend) Executed(context.Context, string) (bool, error) { return f.executed, nil }
 func (f *fakeBackend) Send(_ context.Context, d config.Delegation, id string, v Vote, guard func() error, journal func(string) error) error {
 	f.sends++
